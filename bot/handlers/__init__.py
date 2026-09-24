@@ -1,5 +1,5 @@
 from aiogram import Router
-from bot.handlers.user.start import router as router_start
+from bot.handlers.start import router as router_start
 
 router = Router()
 

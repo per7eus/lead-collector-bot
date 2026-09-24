@@ -1,1 +1,4 @@
-# template-tg-bot
+# lead-collector-bot
+
+Заказчик: https://kwork.com/user/retardeadshit
+
