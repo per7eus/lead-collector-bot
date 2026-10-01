@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADMIN_ID = 5890656811
+ADMIN_ID = 8622766758
 
 api_key = os.getenv("API_KEY")
 

@@ -26,7 +26,7 @@ def age_kb() -> ReplyKeyboardMarkup:
 
 def confirm_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Всё верно — Оплатить 4 000 ₽", callback_data="reg_confirm")],
+        [InlineKeyboardButton(text="✅ Всё верно — Оплатить ₽", callback_data="reg_confirm")],
         [InlineKeyboardButton(text="✏️ Изменить данные", callback_data="reg_edit")],
     ])
 
