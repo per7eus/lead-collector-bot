@@ -1,30 +1,17 @@
 from aiogram import Router
-from aiogram.types import Message 
+from aiogram.types import Message
+from aiogram.filters import Command
 
 from bot.keyboard.start import start_inline_keyboard
+from bot.core.texts import START_TEXT
+
 
 router = Router()
 
-START_TEXT = """Привет 👋
-
-Я бот проекта Чёрного Кролика — эксперта по межполовым коммуникациям.
-
-Здесь ты можешь узнать подробности о мастер-классе «Пробуждение», зарегистрироваться и сразу оплатить участие.
-
-🎟 Стоимость участия:
-
-до 20 сентября — 3 000 ₽
-с 21 по 30 сентября — 4 000 ₽
-с 1 по 10 октября — 5 000 ₽
-
-Чем ближе мастер-класс, тем выше стоимость участия.
-
-После регистрации и оплаты я пришлю подтверждение и всю необходимую информацию.
-
-👇 Начнём с самого главного: что будет на мастер-классе и зачем тебе туда."""
 
 
-@router.message()
+
+@router.message(Command("start"))
 async def start(mes: Message):
+    print(mes.from_user.id)
     await mes.answer(START_TEXT, reply_markup=start_inline_keyboard)
-    

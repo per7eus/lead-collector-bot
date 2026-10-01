@@ -24,4 +24,4 @@ if __name__ == "__main__":
         logging.info("Bot started")
         asyncio.run(main())
     except Exception as e:
-        logging.info(f"Bot stoped. Error: {e}") 
+        logging.info(f"Bot stopped. Error: {e}")
