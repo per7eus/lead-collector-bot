@@ -5,14 +5,12 @@ from aiogram import Bot, Dispatcher
 
 from config import api_key
 
-from bot.middlewares.test import MaimMiddleware
 from bot.handlers import router 
 
 
 async def main():
     bot = Bot(token=api_key)    
     dp = Dispatcher()
-    # dp.message.middleware(MaimMiddleware)
     dp.include_router(router)
 
     await dp.start_polling(bot)
