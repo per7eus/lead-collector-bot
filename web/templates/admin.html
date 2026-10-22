@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hidden { display: none; }
+
+        .card {
+            background: #1e1e1e;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        h2, h3, h4 {
+            color: #ffffff;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #cccccc;
+            font-size: 13px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="datetime-local"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            border: 1px solid #444444;
+            border-radius: 6px;
+            box-sizing: border-box;
+            outline: none;
+            font-size: 14px;
+        }
+
+        input:focus {
+            border-color: #0d84e3;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid #333333;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #252525;
+            color: #ffffff;
+        }
+
+        td {
+            color: #e0e0e0;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            align-items: flex-end;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 140px;
+            margin-bottom: 0;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-danger {
+            background-color: #d9534f;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #0d84e3;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary:active, .btn-danger:active {
+            opacity: 0.8;
+        }
+
+        .status-msg {
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        .status-success { color: #5cb85c; }
+        .status-error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Блок входа -->
+        <div id="login-box" class="card">
+            <h2>Вход в панель</h2>
+            <div class="form-group">
+                <label for="username">Логин</label>
+                <input type="text" id="username" autocomplete="username" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" autocomplete="current-password" placeholder="••••••••">
+            </div>
+            <button class="btn-primary" onclick="handleLogin()">Войти</button>
+            <div id="error-msg" class="status-msg status-error"></div>
+        </div>
+
+        <!-- Блок администратора -->
+        <div id="admin-box" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>Управление мероприятием</h2>
+                <button class="btn-danger btn-sm" onclick="handleLogout()">Выйти</button>
+            </div>
+            <p style="color: #aaaaaa;">Администратор: <b id="user-display" style="color: #ffffff;"></b></p>
+
+            <!-- Карточка даты проведения мероприятия -->
+            <div class="card">
+                <h3>Данные мероприятия</h3>
+                <div class="form-group">
+                    <label for="event-date">Дата проведения (текстом для бота)</label>
+                    <input type="text" id="event-date" placeholder="31 октября 2026">
+                </div>
+                <div class="form-group">
+                    <label for="event-time">Время проведения</label>
+                    <input type="text" id="event-time" placeholder="15:00–22:00/22:30">
+                </div>
+                <button class="btn-primary" onclick="handleUpdateEventInfo()">Сохранить данные мероприятия</button>
+                <div id="event-status-msg" class="status-msg"></div>
+            </div>
+
+            <!-- Карточка периодов цен -->
+            <div class="card">
+                <h3>Актуальные периоды цен</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Действует до (МСК)</th>
+                                <th>Стоимость (₽)</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tiers-table-body">
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: #888;">Загрузка данных...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Добавить период</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new-until">Конечная дата и время</label>
+                        <input type="datetime-local" id="new-until" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-price">Цена (₽)</label>
+                        <input type="number" id="new-price" placeholder="3000" min="0" step="100" required>
+                    </div>
+                    <button class="btn-primary" onclick="handleAddTier()">Добавить</button>
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #333333;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="default-price">Базовая цена после всех дедлайнов (₽)</label>
+                        <input type="number" id="default-price" placeholder="5000" min="0" step="100">
+                    </div>
+                    <button class="btn-primary" onclick="handleUpdateDefaultPrice()">Сохранить базовую</button>
+                </div>
+
+                <div id="tiers-status-msg" class="status-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.expand();
+
+        const tokenKey = 'admin_session_token';
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedToken = localStorage.getItem(tokenKey);
+            if (savedToken) {
+                await verifyToken(savedToken);
+            }
+        });
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem(tokenKey);
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            };
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('error-msg');
+            errorEl.innerText = '';
+
+            if (!username || !password) {
+                errorEl.innerText = 'Заполните все поля';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    errorEl.innerText = data.detail || 'Ошибка авторизации';
+                    return;
+                }
+
+                localStorage.setItem(tokenKey, data.token);
+                showAdminPanel(data.username);
+            } catch (err) {
+                errorEl.innerText = 'Ошибка соединения с сервером';
+            }
+        }
+
+        async function verifyToken(token) {
+            try {
+                const res = await fetch('/api/admin/check', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showAdminPanel(data.user);
+                } else {
+                    localStorage.removeItem(tokenKey);
+                }
+            } catch (e) {
+                localStorage.removeItem(tokenKey);
+            }
+        }
+
+        function showAdminPanel(username) {
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('admin-box').classList.remove('hidden');
+            document.getElementById('user-display').innerText = username;
+            loadPriceSettings();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem(tokenKey);
+            document.getElementById('admin-box').classList.add('hidden');
+            document.getElementById('login-box').classList.remove('hidden');
+            document.getElementById('password').value = '';
+        }
+
+        function setStatus(elementId, text, isError = false) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.innerText = text;
+            statusEl.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
+            setTimeout(() => { statusEl.innerText = ''; }, 4000);
+        }
+
+        async function loadPriceSettings() {
+            try {
+                const res = await fetch('/api/admin/prices', {
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) throw new Error('Не удалось загрузить данные');
+
+                const data = await res.json();
+                renderTiers(data.tiers || []);
+                document.getElementById('default-price').value = data.default_price ?? 5000;
+                document.getElementById('event-date').value = data.event_date || '31 октября 2026';
+                document.getElementById('event-time').value = data.event_time || '15:00–22:00/22:30';
+            } catch (err) {
+                setStatus('tiers-status-msg', 'Ошибка при получении данных', true);
+            }
+        }
+
+        function renderTiers(tiers) {
+            const tbody = document.getElementById('tiers-table-body');
+            tbody.innerHTML = '';
+
+            if (tiers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Периоды не настроены</td></tr>';
+                return;
+            }
+
+            tiers.forEach(tier => {
+                const tr = document.createElement('tr');
+                const formattedDate = tier.until.replace('T', ' ');
+
+                tr.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td><b>${tier.price.toLocaleString('ru-RU')} ₽</b></td>
+                    <td>
+                        <button class="btn-danger btn-sm" onclick="handleDeleteTier(${tier.id})">Удалить</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleUpdateEventInfo() {
+            const eventDate = document.getElementById('event-date').value.trim();
+            const eventTime = document.getElementById('event-time').value.trim();
+
+            if (!eventDate || !eventTime) {
+                setStatus('event-status-msg', 'Заполните дату и время проведения', true);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/event', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ event_date: eventDate, event_time: eventTime })
+                });
+
+                if (!res.ok) throw new Error('Ошибка сохранения информации о мероприятии');
+
+                setStatus('event-status-msg', 'Данные мероприятия успешно обновлены');
+            } catch (err) {
+                setStatus('event-status-msg', err.message, true);
+            }
+        }
+
+        async function handleAddTier() {
+            const untilInput = document.getElementById('new-until');
+            const priceInput = document.getElementById('new-price');
+
+            const until = untilInput.value;
+            const price = parseInt(priceInput.value, 10);
+
+            if (!until || isNaN(price) || price < 0) {
+                setStatus('tiers-status-msg', 'Укажите корректную дату и стоимость', true);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/prices/tier', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ until, price })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Ошибка добавления');
+                }
+
+                untilInput.value = '';
+                priceInput.value = '';
+                setStatus('tiers-status-msg', 'Период успешно добавлен');
+                await loadPriceSettings();
+            } catch (err) {
+                setStatus('tiers-status-msg', err.message, true);
+            }
+        }
+
+        async function handleDeleteTier(tierId) {
+            try {
+                const res = await fetch(`/api/admin/prices/tier/${tierId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (!res.ok) throw new Error('Не удалось удалить период');
+
+                setStatus('tiers-status-msg', 'Период удален');
+                await loadPriceSettings();
+            } catch (err) {
+                setStatus('tiers-status-msg', err.message, true);
+            }
+        }
+
+        async function handleUpdateDefaultPrice() {
+            const defaultPrice = parseInt(document.getElementById('default-price').value, 10);
+
+            if (isNaN(defaultPrice) || defaultPrice < 0) {
+                setStatus('tiers-status-msg', 'Введите корректную базовую стоимость', true);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/prices/default', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ default_price: defaultPrice })
+                });
+
+                if (!res.ok) throw new Error('Ошибка сохранения базовой цены');
+
+                setStatus('tiers-status-msg', 'Базовая цена обновлена');
+                await loadPriceSettings();
+            } catch (err) {
+                setStatus('tiers-status-msg', err.message, true);
+            }
+        }
+    </script>
+</body>
+</html>
