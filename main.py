@@ -3,9 +3,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 
+from bot.handlers import router
 from config import api_key
-
-from bot.handlers import router 
 
 
 async def main():

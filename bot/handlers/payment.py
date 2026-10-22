@@ -1,15 +1,11 @@
-from aiogram import Router, F, Bot
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
-    InlineKeyboardMarkup,
     InlineKeyboardButton,
+    InlineKeyboardMarkup,
     Message,
 )
-
-from bot.states.registration import Registration
-
-from config import ADMIN_ID
 
 from bot.core.payment import (
     ORDERS,
@@ -18,7 +14,8 @@ from bot.core.payment import (
     get_current_price,
     start_payment_monitor,
 )
-
+from bot.states.registration import Registration
+from config import ADMIN_ID
 
 router = Router()
 

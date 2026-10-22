@@ -9,12 +9,11 @@ from aiogram import Bot
 from yookassa import Configuration, Payment
 
 from config import (
-    YOOKASSA_SHOP_ID,
-    YOOKASSA_SECRET_KEY,
-    BOT_USERNAME,
     ADMIN_ID,
+    BOT_USERNAME,
+    YOOKASSA_SECRET_KEY,
+    YOOKASSA_SHOP_ID,
 )
-
 
 logger = logging.getLogger(__name__)
 

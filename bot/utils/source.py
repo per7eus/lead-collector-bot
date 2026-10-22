@@ -1,4 +1,5 @@
 import re
+
 from aiogram.types import Message
 
 ALLOWED_SOURCES = {"landing", "telegram_channel", "instagram", "vk", "ads", "other"}

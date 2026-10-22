@@ -1,13 +1,15 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
-from bot.states.registration import Registration
-from bot.keyboard.registration import phone_kb, age_kb, confirm_kb, edit_kb, remove_kb
 from bot.core.validators import (
-    is_valid_name, normalize_phone, parse_age, MIN_AGE,
+    MIN_AGE,
+    is_valid_name,
+    normalize_phone,
+    parse_age,
 )
-
+from bot.keyboard.registration import age_kb, confirm_kb, edit_kb, phone_kb, remove_kb
+from bot.states.registration import Registration
 
 router = Router()
 
