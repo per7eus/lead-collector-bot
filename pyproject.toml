@@ -12,3 +12,4 @@ dependencies = [
 ]
 [tool.fastapi]
 entrypoint = "fast-api.main:app"
+

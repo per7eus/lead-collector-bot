@@ -7,7 +7,7 @@ from aiogram.types import (
     Message,
 )
 
-from bot.core.payment import (
+from core.payment import (
     ORDERS,
     create_order_id,
     create_yookassa_payment,

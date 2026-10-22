@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.core.validators import (
+from core.validators import (
     MIN_AGE,
     is_valid_name,
     normalize_phone,

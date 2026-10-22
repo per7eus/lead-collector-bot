@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from bot.core.texts import (
+from core.texts import (
     CONDITIONS_TEXT,
     EXPERT_TEXT,
     FOR_WHOM_TEXT,
