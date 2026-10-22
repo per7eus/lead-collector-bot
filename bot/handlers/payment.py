@@ -1,3 +1,4 @@
+import logging
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
@@ -14,8 +15,11 @@ from core.payment import (
     get_current_price,
     start_payment_monitor,
 )
+from core.texts import get_event_info
 from bot.states.registration import Registration
 from config import ADMIN_ID
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -33,60 +37,32 @@ async def confirm_registration(
     bot: Bot,
     state: FSMContext,
 ):
-
     data = await state.get_data()
 
     telegram_id = callback.from_user.id
-
-    first_name = data.get(
-        "first_name",
-        "",
-    )
-
-    last_name = data.get(
-        "last_name",
-        "",
-    )
-
-    phone = data.get(
-        "phone",
-        "",
-    )
-
-    source = data.get(
-        "source",
-    )
+    first_name = data.get("first_name", "")
+    last_name = data.get("last_name", "")
+    phone = data.get("phone", "")
+    source = data.get("source")
 
     # =====================================================
-    # ЦЕНА
+    # ЦЕНА И ДАННЫЕ МЕРОПРИЯТИЯ
     # =====================================================
 
     amount = get_current_price()
-
-    # =====================================================
-    # TODO:
-    #
-    # Здесь позже добавим БД и проверку:
-    #
-    # if оплаченных >= 30:
-    #     ...
-    #
-    # =====================================================
+    event_date, event_time = get_event_info()
 
     # =====================================================
     # ORDER ID
     # =====================================================
 
-    order_id = create_order_id(
-        telegram_id
-    )
+    order_id = create_order_id(telegram_id)
 
     # =====================================================
     # СОЗДАЁМ ПЛАТЁЖ
     # =====================================================
 
     try:
-
         payment = create_yookassa_payment(
             order_id=order_id,
             telegram_id=telegram_id,
@@ -96,21 +72,14 @@ async def confirm_registration(
             source=source,
             amount=amount,
         )
-
     except Exception as e:
-
-        print(
-            "Ошибка создания платежа ЮKassa:",
-            e,
-        )
+        logger.exception("Ошибка создания платежа ЮKassa: %s", e)
 
         await callback.message.answer(
             "Не удалось создать платёж.\n\n"
             "Попробуй ещё раз через несколько секунд."
         )
-
         await callback.answer()
-
         return
 
     # =====================================================
@@ -118,23 +87,14 @@ async def confirm_registration(
     # =====================================================
 
     ORDERS[order_id] = {
-
         "telegram_id": telegram_id,
-
         "first_name": first_name,
-
         "last_name": last_name,
-
         "phone": phone,
-
         "source": source,
-
         "amount": amount,
-
         "payment_id": payment.id,
-
         "status": "payment_pending",
-
         "paid_at": None,
     }
 
@@ -142,24 +102,19 @@ async def confirm_registration(
     # URL ОПЛАТЫ
     # =====================================================
 
-    payment_url = (
-        payment
-        .confirmation
-        .confirmation_url
-    )
+    payment_url = payment.confirmation.confirmation_url
 
     # =====================================================
     # КНОПКА
     # =====================================================
 
+    formatted_amount = f"{amount:,}".replace(",", " ")
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=(
-                        f"💳 Оплатить "
-                        f"{amount} ₽"
-                    ),
+                    text=f"💳 Оплатить {formatted_amount} ₽",
                     url=payment_url,
                 )
             ]
@@ -177,25 +132,14 @@ async def confirm_registration(
     # =====================================================
 
     await callback.message.answer(
-
         "💳 Оплата участия\n\n"
-
-        "Мастер-класс "
-        "«Пробуждение»\n\n"
-
-        "📅 31 октября 2026\n"
-        "🕒 Начало в 15:00\n"
+        "Мастер-класс «Пробуждение»\n\n"
+        f"📅 {event_date}\n"
+        f"🕒 Время: {event_time}\n"
         "📍 Москва, м. Проспект Мира\n\n"
-
-        f"Стоимость участия: "
-        f"{amount} ₽\n\n"
-
-        "Нажми кнопку ниже, чтобы "
-        "перейти к оплате ЮKassa.\n\n"
-
-        "После оплаты бот автоматически "
-        "проверит статус платежа.",
-
+        f"Стоимость участия: {formatted_amount} ₽\n\n"
+        "Нажми кнопку ниже, чтобы перейти к оплате ЮKassa.\n\n"
+        "После оплаты бот автоматически проверит статус платежа.",
         reply_markup=keyboard,
     )
 
@@ -203,20 +147,17 @@ async def confirm_registration(
     # АДМИНУ
     # =====================================================
 
+    username_part = f"@{callback.from_user.username}" if callback.from_user.username else "нет username"
+
     await bot.send_message(
-
         ADMIN_ID,
-
         "📝 Создана заявка на оплату (Пока не оплачено)\n\n"
-
         f"Имя: {first_name}\n"
         f"Фамилия: {last_name}\n"
         f"Телефон: {phone}\n\n"
-
         f"Telegram ID: {telegram_id}\n"
-        f"Username: @{callback.from_user.username}\n\n"
-
-        f"Сумма: {amount} ₽\n"
+        f"Username: {username_part}\n\n"
+        f"Сумма: {formatted_amount} ₽\n"
         f"Order ID: {order_id}\n"
         f"Payment ID: {payment.id}"
     )
@@ -235,18 +176,11 @@ async def confirm_registration(
     # =====================================================
 
     await state.clear()
-
     await callback.answer()
 
 
 # =========================================================
 # ВОЗВРАТ ПОЛЬЗОВАТЕЛЯ ИЗ ЮKASSA
-# =========================================================
-#
-# ЮKassa возвращает пользователя примерно сюда:
-#
-# https://t.me/YOUR_BOT?start=payment_reg_...
-#
 # =========================================================
 
 @router.message(
@@ -256,48 +190,24 @@ async def payment_return(
     message: Message,
     bot: Bot,
 ):
+    # Извлекаем order_id целиком (он уже содержит "reg_")
+    order_id = message.text.replace("/start payment_", "", 1).strip()
 
-    payload = (
-        message.text
-        .replace(
-            "/start payment_",
-            "",
-            1,
-        )
-        .strip()
-    )
-
-    order_id = (
-        f"reg_{payload}"
-    )
-
-    order = ORDERS.get(
-        order_id
-    )
+    order = ORDERS.get(order_id)
 
     if not order:
-
         await message.answer(
             "Не удалось найти платёж.\n\n"
-            "Если ты уже оплатил(а), "
-            "свяжись с администратором."
+            "Если ты уже оплатил(а), свяжись с администратором."
         )
-
         return
 
     if order["status"] == "paid":
-
         await message.answer(
             "Оплата уже подтверждена ✅"
         )
-
         return
 
-    # Мониторинг уже мог быть запущен.
-    #
-    # Запускаем ещё один безопасно:
-    # finish_payment() проверяет status=paid,
-    # поэтому повторно сообщение не уйдёт.
     start_payment_monitor(
         bot,
         order_id,
@@ -305,6 +215,5 @@ async def payment_return(
 
     await message.answer(
         "Проверяю оплату... ⏳\n\n"
-        "Обычно подтверждение занимает "
-        "несколько секунд."
+        "Обычно подтверждение занимает несколько секунд."
     )
