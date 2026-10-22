@@ -1,9 +1,11 @@
+import json
 import asyncio
 import logging
 from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
+from pathlib import Path
 
 from aiogram import Bot
 from yookassa import Configuration, Payment
@@ -46,27 +48,68 @@ ORDERS = {}
 # =========================================================
 # ЦЕНА
 # =========================================================
+# Путь к db.json относительно текущего файла
+CURRENT_FILE = Path(__file__).resolve()
+
+# Поднимаемся на уровень выше: из core/ в корень проекта lead-collector-bot/
+PROJECT_ROOT = CURRENT_FILE.parent.parent
+
+# Итоговый абсолютный путь к db.json
+DB_PATH = PROJECT_ROOT / "db" / "db.json"
+
 
 def get_current_price() -> int:
     """
-    Возвращает актуальную стоимость по московскому времени.
-
-    18–28 октября 2026 -> 3000 ₽
-    29–31 октября 2026 -> 5000 ₽
-    После 31 октября   -> 5000 ₽
+    Возвращает актуальную стоимость по московскому времени,
+    считывая настроенные периоды из db/db.json.
     """
+    fallback_price = 10000000000000000
+
+    if not DB_PATH.exists():
+        logger.warning("Файл базы %s не найден, возвращаем fallback: %d", DB_PATH, fallback_price)
+        return fallback_price
+
+    try:
+        with open(DB_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.exception("Ошибка чтения %s: %s. Возвращаем fallback: %d", DB_PATH, e, fallback_price)
+        return fallback_price
+
+    default_price = data.get("default_price", fallback_price)
+    tiers = data.get("tiers", [])
+
+    if not tiers:
+        return default_price
+
     now = datetime.now(MOSCOW)
 
-    # 18–28 октября включительно
-    if now < datetime(2026, 10, 29, 0, 0, 0, tzinfo=MOSCOW):
-        return 3000
+    # Проходим по периодам
+    for tier in tiers:
+        until_raw = tier.get("until")
+        price = tier.get("price")
 
-    # 29–31 октября включительно
-    if now < datetime(2026, 11, 1, 0, 0, 0, tzinfo=MOSCOW):
-        return 5000
+        if not until_raw or price is None:
+            continue
 
-    # После мероприятия
-    return 5000
+        try:
+            # Нормализуем ISO-строку (например, "2026-10-28 23:59:59")
+            dt_until = datetime.fromisoformat(until_raw.strip())
+
+            # Привязываем к часовому поясу Москвы, если дата наивная
+            if dt_until.tzinfo is None:
+                dt_until = dt_until.replace(tzinfo=MOSCOW)
+
+            # Если текущее время еще не превысило дедлайн периода
+            if now <= dt_until:
+                return int(price)
+
+        except (ValueError, TypeError) as err:
+            logger.error("Неверный формат даты в tier (id=%s): %s", tier.get("id"), err)
+            continue
+
+    # Если все дедлайны уже позади
+    return int(default_price)
 
 # =========================================================
 # СОЗДАНИЕ ORDER ID
