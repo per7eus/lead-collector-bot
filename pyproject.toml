@@ -10,6 +10,7 @@ dependencies = [
     "ruff>=0.17.1",
     "yookassa>=3.12.1",
 ]
+
 [tool.fastapi]
-entrypoint = "fast-api.main:app"
+entrypoint = "web.main:app"
 
