@@ -16,7 +16,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 680px;
             margin: 0 auto;
         }
 
@@ -46,10 +46,26 @@
             font-size: 13px;
         }
 
+        .hint {
+            color: #888888;
+            font-size: 12px;
+            margin-top: 3px;
+            display: block;
+        }
+
+        .tag-badge {
+            background-color: #2a2a2a;
+            color: #0d84e3;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
         input[type="text"],
         input[type="password"],
         input[type="number"],
-        input[type="datetime-local"] {
+        input[type="datetime-local"],
+        textarea {
             width: 100%;
             padding: 10px;
             background-color: #2a2a2a;
@@ -59,9 +75,16 @@
             box-sizing: border-box;
             outline: none;
             font-size: 14px;
+            font-family: inherit;
         }
 
-        input:focus {
+        textarea {
+            resize: vertical;
+            min-height: 85px;
+            line-height: 1.4;
+        }
+
+        input:focus, textarea:focus {
             border-color: #0d84e3;
         }
 
@@ -80,8 +103,9 @@
 
         th, td {
             border: 1px solid #333333;
-            padding: 10px;
+            padding: 8px;
             text-align: left;
+            vertical-align: middle;
         }
 
         th {
@@ -91,6 +115,24 @@
 
         td {
             color: #e0e0e0;
+        }
+
+        .table-input {
+            padding: 6px 8px !important;
+            font-size: 13px !important;
+            min-width: 150px;
+        }
+
+        .table-input-price {
+            padding: 6px 8px !important;
+            font-size: 13px !important;
+            min-width: 90px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         .form-row {
@@ -113,6 +155,14 @@
             cursor: pointer;
         }
 
+        .btn-success {
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
         .btn-danger {
             background-color: #d9534f;
             color: #ffffff;
@@ -131,7 +181,7 @@
             font-weight: 500;
         }
 
-        .btn-primary:active, .btn-danger:active {
+        .btn-primary:active, .btn-danger:active, .btn-success:active {
             opacity: 0.8;
         }
 
@@ -193,7 +243,7 @@
                             <tr>
                                 <th>Действует до (МСК)</th>
                                 <th>Стоимость (₽)</th>
-                                <th>Действие</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody id="tiers-table-body">
@@ -228,6 +278,62 @@
                 </div>
 
                 <div id="tiers-status-msg" class="status-msg"></div>
+            </div>
+
+            <!-- Карточка редактирования текстов -->
+            <div class="card">
+                <h3>Тексты сообщений бота</h3>
+
+                <div class="form-group">
+                    <label for="text-start">Приветствие (START_TEXT)</label>
+                    <textarea id="text-start" rows="6"></textarea>
+                    <span class="hint">Обязательно должен содержать тег <span class="tag-badge">{price_schedule}</span></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-conditions">Условия участия (CONDITIONS_TEXT)</label>
+                    <textarea id="text-conditions" rows="5"></textarea>
+                    <span class="hint">Обязательно должен содержать теги <span class="tag-badge">{event_date}</span> и <span class="tag-badge">{event_time}</span></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-problem">О проблеме (PROBLEM_TEXT)</label>
+                    <textarea id="text-problem" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-program">Программа тренинга (PROGRAM_TEXT)</label>
+                    <textarea id="text-program" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-for-whom">Для кого тренинг (FOR_WHOM_TEXT)</label>
+                    <textarea id="text-for-whom" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-expert">Об эксперте (EXPERT_TEXT)</label>
+                    <textarea id="text-expert" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="text-menu">Текст главного меню (MENU_TEXT)</label>
+                    <input type="text" id="text-menu">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="text-admin-phone">Телефон администратора</label>
+                        <input type="text" id="text-admin-phone" placeholder="+7 977 999 5655">
+                    </div>
+                    <div class="form-group">
+                        <label for="text-admin-tg">Telegram администратора (без @)</label>
+                        <input type="text" id="text-admin-tg" placeholder="blackbrabbit">
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="handleUpdateTexts()">Сохранить тексты</button>
+                <div id="texts-status-msg" class="status-msg"></div>
             </div>
         </div>
     </div>
@@ -319,7 +425,7 @@
             const statusEl = document.getElementById(elementId);
             statusEl.innerText = text;
             statusEl.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
-            setTimeout(() => { statusEl.innerText = ''; }, 4000);
+            setTimeout(() => { statusEl.innerText = ''; }, 4500);
         }
 
         async function loadPriceSettings() {
@@ -334,6 +440,19 @@
                 document.getElementById('default-price').value = data.default_price ?? 5000;
                 document.getElementById('event-date').value = data.event_date || '31 октября 2026';
                 document.getElementById('event-time').value = data.event_time || '15:00–22:00/22:30';
+
+                // Заполняем форму текстов
+                const texts = data.texts || {};
+                document.getElementById('text-start').value = texts.start || '';
+                document.getElementById('text-conditions').value = texts.conditions || '';
+                document.getElementById('text-problem').value = texts.problem || '';
+                document.getElementById('text-program').value = texts.program || '';
+                document.getElementById('text-for-whom').value = texts.for_whom || '';
+                document.getElementById('text-expert').value = texts.expert || '';
+                document.getElementById('text-menu').value = texts.menu || '';
+                document.getElementById('text-admin-phone').value = texts.admin_phone || '';
+                document.getElementById('text-admin-tg').value = texts.admin_tg || '';
+
             } catch (err) {
                 setStatus('tiers-status-msg', 'Ошибка при получении данных', true);
             }
@@ -350,17 +469,103 @@
 
             tiers.forEach(tier => {
                 const tr = document.createElement('tr');
-                const formattedDate = tier.until.replace('T', ' ');
+                let dateValue = tier.until.replace(' ', 'T');
+                if (dateValue.length > 16) {
+                    dateValue = dateValue.substring(0, 16);
+                }
 
                 tr.innerHTML = `
-                    <td>${formattedDate}</td>
-                    <td><b>${tier.price.toLocaleString('ru-RU')} ₽</b></td>
                     <td>
-                        <button class="btn-danger btn-sm" onclick="handleDeleteTier(${tier.id})">Удалить</button>
+                        <input type="datetime-local" class="table-input" id="tier-until-${tier.id}" value="${dateValue}">
+                    </td>
+                    <td>
+                        <input type="number" class="table-input-price" id="tier-price-${tier.id}" value="${tier.price}" min="0" step="100">
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-success btn-sm" onclick="handleUpdateTier(${tier.id})">Сохранить</button>
+                            <button class="btn-danger btn-sm" onclick="handleDeleteTier(${tier.id})">Удалить</button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        async function handleUpdateTier(tierId) {
+            const untilInput = document.getElementById(`tier-until-${tierId}`);
+            const priceInput = document.getElementById(`tier-price-${tierId}`);
+
+            const until = untilInput.value;
+            const price = parseInt(priceInput.value, 10);
+
+            if (!until || isNaN(price) || price < 0) {
+                setStatus('tiers-status-msg', 'Укажите корректную дату и стоимость', true);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/prices/tier/${tierId}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ until, price })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Ошибка сохранения');
+                }
+
+                setStatus('tiers-status-msg', 'Изменения сохранены');
+                await loadPriceSettings();
+            } catch (err) {
+                setStatus('tiers-status-msg', err.message, true);
+            }
+        }
+
+        async function handleUpdateTexts() {
+            const startText = document.getElementById('text-start').value;
+            const conditionsText = document.getElementById('text-conditions').value;
+
+            // КЛИЕНТСКАЯ ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПЕРЕМЕННЫХ
+            if (!startText.includes('{price_schedule}')) {
+                setStatus('texts-status-msg', 'Ошибка: текст приветствия обязательно должен содержать {price_schedule}', true);
+                return;
+            }
+
+            if (!conditionsText.includes('{event_date}') || !conditionsText.includes('{event_time}')) {
+                setStatus('texts-status-msg', 'Ошибка: текст условий обязательно должен содержать {event_date} и {event_time}', true);
+                return;
+            }
+
+            const payload = {
+                start: startText,
+                conditions: conditionsText,
+                problem: document.getElementById('text-problem').value,
+                program: document.getElementById('text-program').value,
+                for_whom: document.getElementById('text-for-whom').value,
+                expert: document.getElementById('text-expert').value,
+                menu: document.getElementById('text-menu').value,
+                admin_phone: document.getElementById('text-admin-phone').value,
+                admin_tg: document.getElementById('text-admin-tg').value
+            };
+
+            try {
+                const res = await fetch('/api/admin/texts', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Ошибка сохранения текстов');
+                }
+
+                setStatus('texts-status-msg', 'Все тексты успешно сохранены');
+            } catch (err) {
+                setStatus('texts-status-msg', err.message, true);
+            }
         }
 
         async function handleUpdateEventInfo() {
@@ -379,7 +584,7 @@
                     body: JSON.stringify({ event_date: eventDate, event_time: eventTime })
                 });
 
-                if (!res.ok) throw new Error('Ошибка сохранения информации о мероприятии');
+                if (!res.ok) throw new Error('Ошибка сохранения');
 
                 setStatus('event-status-msg', 'Данные мероприятия успешно обновлены');
             } catch (err) {
@@ -453,7 +658,7 @@
 
                 if (!res.ok) throw new Error('Ошибка сохранения базовой цены');
 
-                setStatus('tiers-status-msg', 'Базовая цена обновлена');
+                setStatus('Базовая цена обновлена');
                 await loadPriceSettings();
             } catch (err) {
                 setStatus('tiers-status-msg', err.message, true);

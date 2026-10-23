@@ -184,3 +184,81 @@ async def update_default_price(
     save_db(db_data)
 
     return {"status": "ok", "default_price": data.default_price}
+
+@router.put("/api/admin/prices/tier/{tier_id}")
+async def update_price_tier(
+    tier_id: int,
+    tier_data: TierCreateRequest,
+    current_user: str = Depends(get_current_admin),
+):
+    db_data = load_db()
+    tiers = db_data.get("tiers", [])
+
+    # Ищем период по ID
+    target_tier = next((t for t in tiers if t.get("id") == tier_id), None)
+    if not target_tier:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Период с таким ID не найден",
+        )
+
+    # Приводим дату к формату YYYY-MM-DD HH:MM:SS
+    until_formatted = tier_data.until.replace("T", " ")
+    if len(until_formatted) == 16:
+        until_formatted += ":00"
+
+    target_tier["until"] = until_formatted
+    target_tier["price"] = tier_data.price
+
+    # Пересортировываем список по дате
+    tiers.sort(key=lambda x: x["until"])
+
+    db_data["tiers"] = tiers
+    save_db(db_data)
+
+    return {"status": "ok", "tier": target_tier}
+
+
+from pydantic import BaseModel, Field
+
+# ---------------------------------------------------------
+# Модель для обновления текстов
+# ---------------------------------------------------------
+class TextsUpdateRequest(BaseModel):
+    start: str = Field(..., description="Текст приветствия")
+    problem: str = Field(...)
+    program: str = Field(...)
+    for_whom: str = Field(...)
+    expert: str = Field(...)
+    conditions: str = Field(..., description="Текст условий")
+    menu: str = Field(...)
+    admin_phone: str = Field(...)
+    admin_tg: str = Field(...)
+
+
+# ---------------------------------------------------------
+# Эндпоинт сохранения текстов с валидацией обязательных переменных
+# ---------------------------------------------------------
+@router.post("/api/admin/texts")
+async def update_texts(
+    data: TextsUpdateRequest,
+    current_user: str = Depends(get_current_admin),
+):
+    # Серверная валидация плейсхолдеров
+    if "{price_schedule}" not in data.start:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="В тексте приветствия обязательно должен присутствовать тег {price_schedule}"
+        )
+
+    if "{event_date}" not in data.conditions or "{event_time}" not in data.conditions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="В тексте условий обязательно должны присутствовать теги {event_date} и {event_time}"
+        )
+
+    db_data = load_db()
+    db_data["texts"] = data.model_dump()
+    save_db(db_data)
+
+    return {"status": "ok", "message": "Тексты успешно обновлены"}
